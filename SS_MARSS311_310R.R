@@ -20,15 +20,19 @@ Emp <- Emp %>%  filter(date>=as.Date("1947-01-01")&date<=as.Date("2020-06-01"))
 
 Emp$PAYEMS <- as.numeric(Emp$PAYEMS)
 Emp <- Emp %>% mutate(rate = PAYEMS/lag(PAYEMS,1)-1)
+Emp <- Emp  %>% mutate (norm_rate = scale(rate, center = TRUE, scale = TRUE))
+Emp <- select(Emp, -c(rate))
+
 GDP <- GDP %>% mutate(rate =GDPC1/lag(GDPC1,1)-1)
-GDP <- select(GDP, -c(GDPC1))
+GDP <- GDP  %>% mutate (norm_rate = scale(rate, center = TRUE, scale = TRUE))
+GDP <- select(GDP, -c(rate,GDPC1))
 
 months <- lapply(X = GDP$date, FUN = seq.Date, by = "month", length.out = 3)
 months <- data.frame(date = do.call(what = c, months))
 
 m_GDP <- left_join(x = months, y = GDP , by = "date")
 
-df <- cbind(m_GDP,Emp$rate)
+df <- cbind(m_GDP,Emp$norm_rate)
 
 names(df) <- c("date","S01_GDP","S02_Emp")
 

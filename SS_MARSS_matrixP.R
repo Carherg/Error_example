@@ -174,7 +174,7 @@ df_marss$serie <- NULL
 
 df_marss <- as.matrix(df_marss)
 
-df_marss <- zscore(df_marss)
+#df_marss <- zscore(df_marss,mean.only=TRUE)
 
 # Matrix Z
 # 
@@ -241,7 +241,7 @@ Q <-matrix (list(1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,"q15",0,
                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0),16,16)
 
-Q[1,1]=1
+#Q[1,1]=1
 
 # Q <- matrix(list(0),14,14)
 # Q <- ldiag(list("q1", 0,0,0,0,"q6",0,0,0,0,"q11",0))
@@ -267,3 +267,33 @@ model.gen_2 =list(Z=Z,A=A,R=R,B=B,U=U,Q=Q,x0=x0,V0=V0,tinitx=1)
 kf_ss_2= MARSS(df_marss, model=model.gen_2,control= list(trace=1,maxit = 300),method="BFGS") #,fun.kf = "MARSSkfss")
 
 summary(kf_ss_2)
+
+# Forecast YT
+
+kff <- forecast.marssMLE(kf_ss_2, h=12)
+
+plot(kff, include=50)
+
+# GDP Forecasat
+
+GDP_hat_T <- as.data.frame(kf_ss_2[["ytT"]])
+  
+GDP_hat_T   <- select(kff[["pred"]], c(.rownames,estimate))
+
+names(GDP_hat_T) <- c("variable","estimate")
+
+GDP_hat_T <- GDP_hat_T %>% dplyr::filter(variable == "Y1")
+
+GDP_hat_T$date <-(seq.Date(as.Date("1947-01-01"), as.Date("2021-06-01") , by = "month"))
+
+GDP_hat_T_Q  <- GDP_hat_T%>% filter(month(GDP_hat_T$date) %in% c(3,6,9,12))
+
+GDP_mean <- colMeans(subset(GDP, select=-c(date)),  na.rm = TRUE)
+
+GDP_hat_T_Q <- GDP_hat_T_Q %>% mutate (annualized_rate = (estimate +GDP_mean+1)^4-1 )
+
+# Forecast and fitted ytt
+
+kff_tt <- forecast.marssMLE(kf_ss_2, h=12, type="ytt")
+
+kff_fit_tt <- fitted(kf_ss_2, type="ytt")
